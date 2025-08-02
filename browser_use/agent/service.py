@@ -32,7 +32,7 @@ from browser_use.tokens.service import TokenCost
 load_dotenv()
 
 from bubus import EventBus
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from uuid_extensions import uuid7str
 
 # Lazy import for gif to avoid heavy agent.views import at startup
@@ -757,9 +757,6 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		self.logger.debug(
 			f'🤖 Step {self.state.n_steps}: Calling LLM with {len(input_messages)} messages (model: {self.llm.model})...'
 		)
-
-		# Save input messages and tools to debug files before LLM call
-		self._save_input_messages_to_files(input_messages, tools_schema=self.AgentOutput)
 
 		try:
 			model_output = await asyncio.wait_for(
@@ -1835,103 +1832,3 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 				'complete_history': _get_complete_history_without_screenshots(self.state.history.model_dump()),
 			},
 		}
-
-	def _save_input_messages_to_files(
-		self, input_messages: list[BaseMessage], tools_schema: type[BaseModel] | None = None
-	) -> None:
-		"""Save input messages and tools to debug files for debugging purposes"""
-		import os
-		from datetime import datetime
-
-		# Create debug directory if it doesn't exist
-		debug_dir = 'debug_messages'
-		os.makedirs(debug_dir, exist_ok=True)
-
-		# Get or create run number once per agent run (store in instance)
-		if not hasattr(self, '_debug_run_number'):
-			self._debug_run_number = self._get_next_run_number(debug_dir)
-
-		run_num = self._debug_run_number
-
-		# Use current step number (n_steps starts at 1, representing the step we're about to execute)
-		step_num = self.state.n_steps
-
-		try:
-			# Save system prompt (usually first message)
-			if len(input_messages) > 0:
-				system_file = os.path.join(debug_dir, f'run_{run_num:03d}_step_{step_num:02d}_system_prompt.txt')
-				with open(system_file, 'w', encoding='utf-8') as f:
-					f.write(f'Run: {run_num:03d}\n')
-					f.write(f'Step: {step_num}\n')
-					f.write(f'Timestamp: {datetime.now().isoformat()}\n')
-					f.write(f'Message Type: {type(input_messages[0]).__name__}\n')
-					f.write(f'Model: {self.llm.model}\n')
-					f.write('=' * 80 + '\n\n')
-					f.write(input_messages[0].text)
-
-				self.logger.debug(f'💾 Saved system prompt to: {system_file}')
-
-			# Save user message (usually second message)
-			if len(input_messages) > 1:
-				user_file = os.path.join(debug_dir, f'run_{run_num:03d}_step_{step_num:02d}_user_message.txt')
-				with open(user_file, 'w', encoding='utf-8') as f:
-					f.write(f'Run: {run_num:03d}\n')
-					f.write(f'Step: {step_num}\n')
-					f.write(f'Timestamp: {datetime.now().isoformat()}\n')
-					f.write(f'Message Type: {type(input_messages[1]).__name__}\n')
-					f.write(f'Model: {self.llm.model}\n')
-					f.write('=' * 80 + '\n\n')
-					f.write(input_messages[1].text)
-
-				self.logger.debug(f'💾 Saved user message to: {user_file}')
-
-			# Save all messages in one file for complete context
-			if len(input_messages) > 0:
-				all_file = os.path.join(debug_dir, f'run_{run_num:03d}_step_{step_num:02d}_all_messages.txt')
-				with open(all_file, 'w', encoding='utf-8') as f:
-					f.write(f'Run: {run_num:03d}\n')
-					f.write(f'Step: {step_num}\n')
-					f.write(f'Timestamp: {datetime.now().isoformat()}\n')
-					f.write(f'Model: {self.llm.model}\n')
-					f.write(f'Total Messages: {len(input_messages)}\n')
-					f.write('=' * 80 + '\n\n')
-
-					for i, msg in enumerate(input_messages):
-						f.write(f'MESSAGE {i + 1} ({type(msg).__name__}):\n')
-						f.write('-' * 40 + '\n')
-						f.write(msg.text)
-						f.write('\n\n' + '=' * 80 + '\n\n')
-
-				self.logger.debug(f'💾 Saved all messages to: {all_file}')
-
-			# Save tools/functions schema if provided
-			if tools_schema is not None:
-				tools_file = os.path.join(debug_dir, f'run_{run_num:03d}_step_{step_num:02d}_tools_schema.json')
-				with open(tools_file, 'w', encoding='utf-8') as f:
-					import json
-
-					schema = tools_schema.model_json_schema()
-					f.write(json.dumps(schema, indent=2))
-
-				self.logger.debug(f'💾 Saved tools schema to: {tools_file}')
-
-		except Exception as e:
-			self.logger.warning(f'💾 Failed to save debug messages: {e}')
-
-	def _get_next_run_number(self, debug_dir: str) -> int:
-		"""Get the next available run number by checking existing files"""
-		import os
-		import re
-
-		if not os.path.exists(debug_dir):
-			return 1
-
-		# Find all existing run numbers
-		run_numbers = set()
-		for filename in os.listdir(debug_dir):
-			match = re.match(r'run_(\d{3})_', filename)
-			if match:
-				run_numbers.add(int(match.group(1)))
-
-		# Return the next available run number
-		return max(run_numbers, default=0) + 1

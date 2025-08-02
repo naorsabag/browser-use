@@ -7,6 +7,7 @@ import asyncio
 import os
 import sys
 
+import aiofiles
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,32 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from browser_use import Agent
 from browser_use.llm.openai.chat import ChatOpenAI
-
-
-def check_debug_messages():
-	"""Check if debug_messages directory was created and show file contents."""
-	if os.path.exists('debug_messages'):
-		files = os.listdir('debug_messages')
-		if files:
-			print(f'✅ Found {len(files)} message files:')
-			for file in sorted(files):
-				file_path = os.path.join('debug_messages', file)
-				file_size = os.path.getsize(file_path)
-				print(f'   📄 {file} ({file_size} bytes)')
-
-				# Show first few lines of each file
-				print('      Preview:')
-				with open(file_path, encoding='utf-8') as f:
-					lines = f.readlines()
-					for i, line in enumerate(lines[:5]):  # First 5 lines
-						print(f'      {i + 1:2d}: {line.rstrip()}')
-					if len(lines) > 5:
-						print(f'      ... (+{len(lines) - 5} more lines)')
-				print()
-		else:
-			print('❌ debug_messages directory exists but is empty')
-	else:
-		print('❌ debug_messages directory was not created')
 
 
 async def main():
@@ -83,7 +58,30 @@ async def main():
 
 	# Check if debug_messages directory was created
 	print('\n📁 Checking for saved message files...')
-	check_debug_messages()
+
+	if os.path.exists('debug_messages'):
+		files = os.listdir('debug_messages')
+		if files:
+			print(f'✅ Found {len(files)} message files:')
+			for file in sorted(files):
+				file_path = os.path.join('debug_messages', file)
+				file_size = os.path.getsize(file_path)
+				print(f'   📄 {file} ({file_size} bytes)')
+
+				# Show first few lines of each file
+				print('      Preview:')
+				async with aiofiles.open(file_path, encoding='utf-8') as f:
+					content = await f.read()
+					lines = content.splitlines()
+					for i, line in enumerate(lines[:5]):  # First 5 lines
+						print(f'      {i + 1:2d}: {line}')
+					if len(lines) > 5:
+						print(f'      ... (+{len(lines) - 5} more lines)')
+				print()
+		else:
+			print('❌ debug_messages directory exists but is empty')
+	else:
+		print('❌ debug_messages directory was not created')
 
 	print('🏁 Test completed!')
 

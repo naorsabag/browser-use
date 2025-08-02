@@ -698,6 +698,10 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 
 		assert self.browser_session is not None, 'BrowserSession is not set up'
 
+		# Set current step number on file system for tracking file changes
+		if self.file_system:
+			self.file_system.set_current_step(self.state.n_steps)
+
 		self.logger.debug(f'🌐 Step {self.state.n_steps}: Getting browser state...')
 		browser_state_summary = await self.browser_session.get_browser_state_with_recovery(
 			cache_clickable_elements_hashes=True, include_screenshot=self.settings.use_vision

@@ -74,7 +74,7 @@ async def main():
 					content = await f.read()
 					lines = content.splitlines()
 					for i, line in enumerate(lines[:5]):  # First 5 lines
-						print(f'      {i + 1:2d}: {line}')
+						print(f'      {i + 1:2d}: {line.rstrip()}')
 					if len(lines) > 5:
 						print(f'      ... (+{len(lines) - 5} more lines)')
 				print()

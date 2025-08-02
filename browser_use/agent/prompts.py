@@ -251,6 +251,13 @@ Available tabs:
 		# Start with user request
 		state_description = f'<user_request>\n{self.task}\n</user_request>\n'
 
+		# Add todo contents right after user request
+		if self.file_system:
+			_todo_contents = self.file_system.get_todo_contents()
+			if not len(_todo_contents):
+				_todo_contents = '[Current todo.md is empty, fill it with your plan when applicable]'
+			state_description += f'<todo_contents>\n{_todo_contents}\n</todo_contents>\n'
+
 		# Parse agent history to extract individual steps
 		if self.agent_history_description:
 			history_content = self.agent_history_description.strip()
@@ -282,21 +289,13 @@ Available tabs:
 						if file_changes:
 							file_description = self.file_system.describe_file_changes(file_changes)
 							if file_description:
-								state_description += (
-									f'<file_changes_step_{step_num}>\n{file_description}\n</file_changes_step_{step_num}>\n'
-								)
+								state_description += f'{file_description}\n'
 
 				# Check if this is a system message
 				elif part.startswith('<sys>'):
 					state_description += f'{part}\n'
 
 		# Add remaining sections in order
-		if self.file_system:
-			_todo_contents = self.file_system.get_todo_contents()
-			if not len(_todo_contents):
-				_todo_contents = '[Current todo.md is empty, fill it with your plan when applicable]'
-			state_description += f'<todo_contents>\n{_todo_contents}\n</todo_contents>\n'
-
 		state_description += '<browser_state>\n' + self._get_browser_state_description().strip('\n') + '\n</browser_state>\n'
 
 		state_description += (

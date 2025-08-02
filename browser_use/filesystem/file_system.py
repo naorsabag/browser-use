@@ -483,6 +483,10 @@ class FileSystem:
 			if not file_obj:
 				continue
 
+			# Skip todo.md from description
+			if file_obj.full_name == 'todo.md':
+				continue
+
 			content = file_obj.read()
 
 			# Handle empty files

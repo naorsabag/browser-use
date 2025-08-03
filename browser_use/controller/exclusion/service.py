@@ -71,7 +71,7 @@ class ToolExclusionService:
 		excluded_tools.extend(self._apply_low_confidence_rules(context))
 
 		# Remove duplicates and ensure we never exclude critical tools
-		excluded_tools = list(set(excluded_tools))
+		excluded_tools = sorted(set(excluded_tools))
 		excluded_tools = [tool for tool in excluded_tools if tool not in self.NEVER_EXCLUDE]
 
 		if excluded_tools:

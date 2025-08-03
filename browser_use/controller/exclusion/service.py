@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from browser_use.browser.views import BrowserStateSummary
-from browser_use.controller.exclusion.views import ExclusionContext, ExclusionRules
+from browser_use.controller.exclusion.views import ExclusionContext
 from browser_use.filesystem.file_system import FileSystem
 
 logger = logging.getLogger(__name__)
@@ -48,10 +48,6 @@ class ToolExclusionService:
 
 	# Tools that should never be excluded (critical functionality)
 	NEVER_EXCLUDE = ['done', 'send_keys', 'go_to_url']
-
-	def __init__(self):
-		"""Initialize the tool exclusion service"""
-		self.exclusion_rules = ExclusionRules()
 
 	def get_excluded_tools(self, context: ExclusionContext) -> list[str]:
 		"""

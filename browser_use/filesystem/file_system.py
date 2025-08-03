@@ -507,7 +507,8 @@ class FileSystem:
 
 	def nuke(self) -> None:
 		"""Delete the file system directory"""
-		shutil.rmtree(self.data_dir)
+		if self.data_dir.exists():
+			shutil.rmtree(self.data_dir)
 
 	@classmethod
 	def from_state(cls, state: FileSystemState) -> 'FileSystem':
